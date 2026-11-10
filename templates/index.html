@@ -1,0 +1,103 @@
+{% extends "base.html" %}
+{% block content %}
+<h1>BJT Common-Emitter DC Bias</h1>
+<p class="sub">NPN, voltage-divider bias, constant V<sub>BE</sub> / ideal-current-gain model</p>
+
+{% if errors %}
+<section class="errors" role="alert">
+  <strong>Check these inputs</strong>
+  <ul>
+    {% for error in errors %}<li>{{ error }}</li>{% endfor %}
+  </ul>
+</section>
+{% endif %}
+
+<form method="post" action="{{ url_for('calculate') }}" class="inputs">
+  {% for name, label, unit in fields %}
+  <label>
+    <span class="label">{{ label }}</span>
+    <span class="field">
+      <input type="text" inputmode="decimal" name="{{ name }}"
+             value="{{ values.get(name, '') }}">
+      {% if unit %}<span class="unit">{{ unit }}</span>{% endif %}
+    </span>
+  </label>
+  {% endfor %}
+  <button type="submit">Calculate DC Bias</button>
+</form>
+
+{% if result %}
+  {% set exact = result.exact %}
+  {% set cmp = result.cmp %}
+
+  <section class="region {{ exact.region }}">
+    Operating region: <strong>{{ exact.region|capitalize }}</strong>
+  </section>
+
+  {% if exact.region == "cutoff" %}
+  <p class="note">The base divider is below V<sub>BE</sub>, so the transistor is
+     off: no collector current flows and V<sub>CE</sub> sits at V<sub>CC</sub>.</p>
+  {% elif exact.region == "saturation" %}
+  <p class="note">The linear model predicts V<sub>CE</sub> below
+     {{ 0.2 }}&nbsp;V. These numbers are <strong>not</strong> a valid bias point.
+     The physical ceiling is I<sub>C,sat</sub> =
+     {{ exact.IC_sat|ma }}&nbsp;mA.</p>
+  {% endif %}
+
+  <h2>DC operating point (exact)</h2>
+  <table class="values">
+    <tbody>
+      <tr><th>V<sub>B</sub></th><td>{{ exact.VB|volts }}</td><td>V</td></tr>
+      <tr><th>V<sub>E</sub></th><td>{{ exact.VE|volts }}</td><td>V</td></tr>
+      <tr><th>V<sub>C</sub></th><td>{{ exact.VC|volts }}</td><td>V</td></tr>
+      <tr><th>V<sub>CE</sub></th><td>{{ exact.VCE|volts }}</td><td>V</td></tr>
+      <tr><th>I<sub>B</sub></th><td>{{ exact.IB|ma }}</td><td>mA ({{ exact.IB|ua }} µA)</td></tr>
+      <tr><th>I<sub>C</sub></th><td>{{ exact.IC|ma }}</td><td>mA</td></tr>
+      <tr><th>I<sub>E</sub></th><td>{{ exact.IE|ma }}</td><td>mA</td></tr>
+      <tr><th>V<sub>BB</sub></th><td>{{ exact.VBB|volts }}</td><td>V (Thévenin)</td></tr>
+      <tr><th>R<sub>B</sub></th><td>{{ "%.1f"|format(exact.RB) }}</td><td>Ω (Thévenin)</td></tr>
+    </tbody>
+  </table>
+
+  <h2>Independent check (β-free approximation)</h2>
+  <table class="values">
+    <thead>
+      <tr><th>Quantity</th><th>Exact</th><th>Approximate</th><th>Δ</th></tr>
+    </thead>
+    <tbody>
+      <tr>
+        <th>I<sub>C</sub> (mA)</th>
+        <td>{{ exact.IC|ma }}</td>
+        <td>{{ cmp.approx.IC|ma }}</td>
+        <td>{{ cmp.delta_ic_pct|pct }} %</td>
+      </tr>
+      <tr>
+        <th>V<sub>CE</sub> (V)</th>
+        <td>{{ exact.VCE|volts }}</td>
+        <td>{{ cmp.approx.VCE|volts }}</td>
+        <td>{{ cmp.delta_vce_pct|pct }} %</td>
+      </tr>
+      <tr>
+        <th>V<sub>B</sub> (V)</th>
+        <td>{{ exact.VB|volts }}</td>
+        <td>{{ cmp.approx.VB|volts }}</td>
+        <td>—</td>
+      </tr>
+    </tbody>
+  </table>
+
+  <p class="rule">
+    β&middot;R<sub>E</sub> / R<sub>2</sub> = {{ "%.2f"|format(cmp.beta_re_over_r2) }}
+    (stiff-divider rule needs ≥ 10).
+    {% if exact.region != "active" %}
+      <strong>Model not valid outside the active region</strong> — the
+      approximation is not reported as usable here.
+    {% elif cmp.approximation_valid %}
+      <strong>Approximation valid.</strong>
+    {% else %}
+      <strong>Approximation not valid</strong> — the divider is not stiff
+      enough, so the base current matters.
+    {% endif %}
+  </p>
+{% endif %}
+{% endblock %}
