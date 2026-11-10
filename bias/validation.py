@@ -1,4 +1,4 @@
-﻿"""Parse and validate raw form input. No Flask imports here."""
+"""Parse and validate raw form input. No Flask imports here."""
 
 import math
 from dataclasses import dataclass
