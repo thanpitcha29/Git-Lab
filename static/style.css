@@ -213,6 +213,17 @@ button:hover { background: linear-gradient(#1e76b6, #125b8f); }
 .schematic .lbl { font-size: 10px; fill: #1b3a52; font-family: inherit; }
 .schematic .val { font-size: 8.5px; fill: #5c7183; font-family: inherit; }
 
+.assumptions {
+  margin: auto 0 0;
+  padding-top: .5rem;
+  border-top: 1px solid #e8eef5;
+  font-size: .78rem;
+  line-height: 1.45;
+  color: var(--muted);
+}
+
+.assumptions strong { color: #1b3a52; }
+
 /* ---------- results ---------- */
 
 table.results {

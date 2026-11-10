@@ -129,3 +129,11 @@ static/style.css        plain readable styling
 tests/                  unittest suite
 docs/superpowers/       design and implementation plan
 ```
+
+## Assumptions
+
+- V_BE is constant and supplied by the user (no temperature dependence).
+- beta is constant and equal to I_C / I_B (no Early effect, no leakage).
+- The transistor is ideal outside the active region: it is off in cutoff (V_BB <= V_BE) and its collector-emitter voltage cannot fall below V_CE,sat = 0.2 V in saturation.
+- Resistors are ideal and independent of temperature; the DC model has no capacitances, so there is no frequency behaviour.
+
