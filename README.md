@@ -1,4 +1,4 @@
-﻿# BJT Common-Emitter DC Bias Calculator
+# BJT Common-Emitter DC Bias Calculator
 
 A one-page Flask app for **ENG29 2121**: enter the seven bias values of an NPN
 common-emitter stage with voltage-divider bias and get the DC operating point
@@ -71,6 +71,8 @@ python -m pip install -r requirements.txt
 python -m flask --app app run --debug
 ```
 
+Resistors are entered in **kOhm** on the form; the app converts them to ohms before the engineering layer runs.
+
 Open <http://127.0.0.1:5000/>.
 
 The Flask development server binds to localhost only. Do not expose it to a
@@ -82,7 +84,7 @@ network, and never commit `.venv/`, `.env`, API keys, or credentials.
 python -m unittest discover -s tests -v
 ```
 
-15 tests: 7 engineering checks (exact solution, cutoff, saturation,
+17 tests: 8 engineering checks (exact solution, cutoff, saturation,
 approximation convergence, comparison rule, refusal to validate the
 approximation outside the active region), 5 validation checks, and 3 HTTP
 checks through the Flask test client.
@@ -113,7 +115,7 @@ Region: **active**. ฮ”IC = 6.16 %, ฮ”VCE = 3.25 %,
 | A3 ยท Values agree with an independent calculation | `bias/calculator.py` `solve_approximate` + `compare`; `test_comparison_reports_rule_and_delta` |
 | A4 ยท Invalid input shows errors, page survives | `bias/validation.py`; `tests/test_validation.py`, `test_post_rejects_bad_input_without_crashing` |
 | A5 ยท Cutoff / saturation warning, approximation not claimed valid | `bias/calculator.py` region logic; `test_approximation_never_valid_outside_active_region` |
-| A6 ยท โฅ3 engineering tests + โฅ1 HTTP test | `tests/` (15 tests) |
+| A6 ยท โฅ3 engineering tests + โฅ1 HTTP test | `tests/` (17 tests) |
 | A7 ยท Clone, install, run, test from README | this file |
 
 ## Layout
