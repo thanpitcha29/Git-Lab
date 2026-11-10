@@ -89,14 +89,17 @@
   <p class="rule">
     β&middot;R<sub>E</sub> / R<sub>2</sub> = {{ "%.2f"|format(cmp.beta_re_over_r2) }}
     (stiff-divider rule needs ≥ 10).
-    {% if exact.region != "active" %}
+    {% if cmp.invalid_reason == "outside_active_region" %}
       <strong>Model not valid outside the active region</strong> — the
       approximation is not reported as usable here.
-    {% elif cmp.approximation_valid %}
-      <strong>Approximation valid.</strong>
-    {% else %}
+    {% elif cmp.invalid_reason == "approximate_saturation" %}
+      <strong>Approximation not valid</strong> — the approximate route lands
+      in saturation by itself, so the two routes are not comparable here.
+    {% elif cmp.invalid_reason == "divider_not_stiff" %}
       <strong>Approximation not valid</strong> — the divider is not stiff
       enough, so the base current matters.
+    {% else %}
+      <strong>Approximation valid.</strong>
     {% endif %}
   </p>
 {% endif %}

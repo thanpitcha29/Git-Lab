@@ -32,6 +32,7 @@ class Comparison:
     beta_re_over_r2: float
     rule_satisfied: bool
     approximation_valid: bool
+    invalid_reason: Optional[str] = None
 
 
 def _regions(VCC: float, RC: float, RE: float, VCE: float) -> tuple:
@@ -103,14 +104,21 @@ def compare(exact: OperatingPoint, approx: OperatingPoint,
             beta: float, RE: float, R2: float) -> Comparison:
     ratio = beta * RE / R2
     rule_satisfied = ratio >= 10.0
-    valid = (rule_satisfied
-             and exact.region == "active"
-             and approx.region == "active")
+    if exact.region != "active":
+        reason = "outside_active_region"
+    elif approx.region != "active":
+        reason = "approximate_saturation"
+    elif not rule_satisfied:
+        reason = "divider_not_stiff"
+    else:
+        reason = None
+
     return Comparison(
         approx=approx,
         delta_ic_pct=_delta_pct(approx.IC, exact.IC),
         delta_vce_pct=_delta_pct(approx.VCE, exact.VCE),
         beta_re_over_r2=ratio,
         rule_satisfied=rule_satisfied,
-        approximation_valid=valid,
+        approximation_valid=reason is None,
+        invalid_reason=reason,
     )

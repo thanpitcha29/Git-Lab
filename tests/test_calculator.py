@@ -61,6 +61,17 @@ class ExactSolverTest(unittest.TestCase):
                           RE=kwargs["RE"], R2=kwargs["R2"])
             self.assertFalse(cmp.approximation_valid)
 
+    def test_reason_when_only_approximate_route_saturates(self):
+        kwargs = dict(VCC=12.0, R1=47_000.0, R2=10_000.0, RC=7_500.0,
+                      RE=1_000.0, beta=150.0, VBE=0.7)
+        exact = solve_exact(**kwargs)
+        approx = solve_approximate(**kwargs)
+        self.assertEqual(exact.region, "active")
+        self.assertEqual(approx.region, "saturation")
+        cmp = compare(exact, approx, beta=150.0, RE=1_000.0, R2=10_000.0)
+        self.assertFalse(cmp.approximation_valid)
+        self.assertEqual(cmp.invalid_reason, "approximate_saturation")
+
 
 if __name__ == "__main__":
     unittest.main()
