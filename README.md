@@ -17,6 +17,25 @@ Three single-supply topologies share one DC model and one result shape:
 No AC analysis, no transient, no Bode plots, no schematic editor — DC bias
 only.
 
+## Lab 03 submission
+
+| Item | Value |
+|---|---|
+| Repository | <https://github.com/thanpitcha29/Git-Lab> |
+| Branch | `main` |
+| A1–A5 acceptance table, evidence, independent reference, AI/student split | [`docs/validation.md`](docs/validation.md) |
+| Screenshot evidence (case A2) | [`docs/evidence-a2-fixed-bias.jpg`](docs/evidence-a2-fixed-bias.jpg) |
+
+Reproduce it with the **Setup**, **Run** and **Test** sections below; the app
+opens at <http://127.0.0.1:5000/>.
+
+What AI wrote: the three solver functions and the shared finishing step in
+`bias/calculator.py`, the mode-aware validation in `bias/validation.py`, the
+`if / elif` dispatch in `app.py`, and the template/CSS. What the student
+checked: the equations against the lab sheet, at least one hand calculation
+per mode, the Divider result staying at 1.23 mA / 8.05 V, and the A1–A5 runs
+repeated in the browser.
+
 ## Bias modes
 
 Common inputs for all three: `VCC`, `RC`, `β`, `VBE`.
@@ -117,10 +136,9 @@ network, and never commit `.venv/`, `.env`, API keys, or credentials.
 python -m unittest discover -s tests -v
 ```
 
-17 tests: 8 engineering checks (exact solution, cutoff, saturation,
-approximation convergence, comparison rule, and the refusal to validate the
-approximation outside the active region), 5 validation checks, and 4 HTTP
-checks through the Flask test client.
+18 tests: 7 engineering checks, 5 validation checks, and 6 HTTP checks through
+the Flask test client — including the three-mode dispatch, the unknown-mode
+rejection, kΩ → Ω scaling, and the input-error path.
 
 ## Worked example
 
@@ -139,17 +157,19 @@ checks through the Flask test client.
 Region: **active**. ΔIC = 6.16 %, ΔVCE = 3.25 %,
 `β·RE / R2 = 15` → approximation valid.
 
-## Acceptance mapping
+## Acceptance mapping (Lab 03)
 
 | Item | Where |
 |---|---|
-| A1 · GET / shows the input form, HTTP 200 | `app.py` `index()`; `tests/test_routes.py::test_get_index_shows_form` |
-| A2 · POST /calculate renders computed values | `app.py` `calculate()` → `bias.calculator`; `test_post_computes_and_renders` |
-| A3 · Values agree with an independent calculation | `bias/calculator.py` `solve_approximate` + `compare`; `test_comparison_reports_rule_and_delta` |
-| A4 · Invalid input shows errors, page survives | `bias/validation.py`; `tests/test_validation.py`, `test_post_rejects_bad_input_without_crashing` |
-| A5 · Cutoff / saturation warning, approximation not claimed valid | `bias/calculator.py` region logic; `test_approximation_never_valid_outside_active_region` |
-| A6 · ≥3 engineering tests + ≥1 HTTP test | `tests/` (17 tests) |
-| A7 · Clone, install, run, test from README | this file |
+| A1 · Divider still correct, unchanged from Lab 02 | `solve_divider()` wraps `solve_exact()`; `docs/validation.md` A1 |
+| A2 · Fixed bias (no RE, VE = 0) | `solve_fixed()`; `app.py` `elif mode == "fixed"` |
+| A3 · Emitter bias uses RE | `solve_emitter()`; RE listed in `MODES["emitter"]` and `FIELDS["emitter"]` |
+| A4 · Doubling RE lowers IC | observed 1.03 → 0.94 mA in `docs/validation.md` A4 |
+| A5 · Bad input rejected, page survives | `bias/validation.py` (`RB > 0`); `test_post_rejects_bad_input_without_crashing` |
+| Same keys/units for all modes | `_point()` returns `vb_v … ie_ma` + `region` + `warning` |
+| Unknown mode never falls back to Divider | `validate_mode()` + `unknown_mode_error()`; `test_unknown_mode_is_rejected` |
+| ≥3 engineering tests + ≥1 HTTP test | `tests/` (18 tests) |
+| Clone, install, run, test from README | this file |
 
 ## Layout
 

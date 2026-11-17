@@ -48,6 +48,16 @@ FIELDS = {
 
 MODE_CHOICES = tuple((key, MODE_NAMES[key]) for key in ("fixed", "emitter", "divider"))
 
+# Display-only reminder of which base-loop equation the mode uses. The
+# numbers are still computed only in bias/calculator.py; this dict keeps the
+# equations out of the template.
+MODE_FORMULAS = {
+    "fixed": "IB = (VCC \u2212 VBE) / RB   \u00b7   VE = 0",
+    "emitter": "IB = (VCC \u2212 VBE) / (RB + (\u03b2 + 1)\u00b7RE)",
+    "divider": ("IB = (VTH \u2212 VBE) / (RTH + (\u03b2 + 1)\u00b7RE)   \u00b7   "
+                "VTH = VCC\u00b7R2/(R1+R2)"),
+}
+
 
 def to_ohms(form):
     """Return a plain dict of SI values; leave unparseable text for validation."""
@@ -78,6 +88,7 @@ def create_app() -> Flask:
             "index.html", mode=mode, mode_name=MODE_NAMES.get(mode),
             mode_choices=MODE_CHOICES, fields=fields, values=values,
             errors=errors, result=result, vce_sat=VCE_SAT,
+            formula=MODE_FORMULAS.get(mode),
         )
 
     @app.get("/")

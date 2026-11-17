@@ -25,12 +25,16 @@
 
     <form method="post" action="{{ url_for('calculate') }}">
       <div class="mode-bar">
-        <label for="mode">Bias mode</label>
-        <select id="mode" name="mode">
+        <span class="mode-bar-label">Bias mode</span>
+        <div class="seg">
           {% for key, label in mode_choices %}
-          <option value="{{ key }}" {% if mode == key %}selected{% endif %}>{{ label }}</option>
+          <label>
+            <input type="radio" name="mode" value="{{ key }}"
+                   {% if mode == key %}checked{% endif %}>
+            <span>{{ label }}</span>
+          </label>
           {% endfor %}
-        </select>
+        </div>
         <button type="submit" class="ghost" formmethod="get"
                 formaction="{{ url_for('index') }}">Change mode</button>
       </div>
@@ -136,6 +140,8 @@
       <strong>Model assumptions:</strong> constant V<sub>BE</sub> (from the form),
       ideal constant &beta;, no Early effect, V<sub>CE,sat</sub> = {{ vce_sat }} V.
     </p>
+
+    <p class="formula">{{ formula }}</p>
     {% else %}
     <p class="placeholder">Pick a bias mode to see the circuit.</p>
     {% endif %}
@@ -148,6 +154,19 @@
     {% if result %}
       {% set point = result.point %}
       <p class="mode-line">Mode: <strong>{{ mode_name }}</strong></p>
+
+      <div class="hero">
+        <div class="hero-main">
+          <span class="hero-value">{{ '%0.2f'|format(point.vce_v) }}</span>
+          <span class="hero-unit">V</span>
+          <span class="hero-label">V<sub>CE</sub></span>
+        </div>
+        <div class="hero-sub">
+          I<sub>C</sub> <b>{{ '%0.2f'|format(point.ic_ma) }} mA</b><br>
+          I<sub>B</sub> <b>{{ '%0.1f'|format(point.ib_ua) }} &micro;A</b>
+        </div>
+      </div>
+
       <table class="results">
         <tbody>
           <tr><th>V<sub>B</sub></th><td>{{ '%0.2f'|format(point.vb_v) }} V</td></tr>
