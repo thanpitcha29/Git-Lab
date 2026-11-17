@@ -110,6 +110,57 @@ body {
   stroke-linejoin: round;
 }
 
+/* ---------- mode selector ---------- */
+
+.mode-bar {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  flex-wrap: wrap;
+  padding-bottom: 10px;
+  margin-bottom: 6px;
+  border-bottom: 1px solid var(--line);
+}
+
+.mode-bar label { font-size: .85rem; color: var(--muted); }
+
+.mode-bar select {
+  flex: 1 1 auto;
+  min-width: 11rem;
+  padding: .38rem .5rem;
+  border: 1px solid var(--line);
+  border-radius: 6px;
+  background: #fbfdff;
+  font: inherit;
+  color: var(--ink);
+}
+
+.mode-bar select:focus {
+  outline: 2px solid var(--blue);
+  outline-offset: 1px;
+  border-color: var(--blue);
+}
+
+button.ghost {
+  width: auto;
+  margin: 0;
+  padding: .4rem .7rem;
+  background: #eef4fa;
+  border: 1px solid var(--line);
+  color: var(--blue-deep);
+  font-weight: 600;
+}
+
+button.ghost:hover { background: #e2edf8; }
+
+.mode-line {
+  margin: 0 0 8px;
+  font-size: .85rem;
+  color: var(--muted);
+}
+
+.mode-line strong { color: var(--blue-deep); }
+
 /* ---------- inputs ---------- */
 
 .row {

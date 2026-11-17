@@ -2,26 +2,51 @@
 
 from flask import Flask, render_template, request
 
-from bias.calculator import VCE_SAT, compare, solve_approximate, solve_exact
-from bias.validation import parse_inputs
-
-DEFAULTS = {
-    "VCC": "12", "R1": "100", "R2": "22", "RC": "2.2",
-    "RE": "1.0", "beta": "100", "VBE": "0.70",
-}
+from bias.calculator import (VCE_SAT, compare, solve_approximate, solve_divider,
+                             solve_emitter, solve_exact, solve_fixed)
+from bias.validation import (MODE_NAMES, parse_inputs, unknown_mode_error,
+                             validate_mode)
 
 # The form takes resistors in kOhm; the engineering layer works in Ohm.
-KOHM_FIELDS = ("R1", "R2", "RC", "RE")
+KOHM_FIELDS = ("R1", "R2", "RC", "RE", "RB")
 
-FIELDS = (
-    ("VCC", "VCC (Supply Voltage)", "V"),
-    ("R1", "R1 (Upper Divider)", "k\u03a9"),
-    ("R2", "R2 (Lower Divider)", "k\u03a9"),
-    ("RC", "RC (Collector Resistor)", "k\u03a9"),
-    ("RE", "RE (Emitter Resistor)", "k\u03a9"),
-    ("beta", "\u03b2 (Current Gain)", ""),
-    ("VBE", "VBE (Base-Emitter Voltage)", "V"),
-)
+MODE_DEFAULTS = {
+    "divider": {"VCC": "12", "R1": "100", "R2": "22", "RC": "2.2",
+                "RE": "1.0", "beta": "100", "VBE": "0.70"},
+    "fixed": {"VCC": "12", "RB": "1000", "RC": "2.2",
+              "beta": "100", "VBE": "0.70"},
+    "emitter": {"VCC": "12", "RB": "1000", "RC": "2.2", "RE": "1.0",
+                "beta": "100", "VBE": "0.70"},
+}
+
+FIELDS = {
+    "divider": (
+        ("VCC", "VCC (Supply Voltage)", "V"),
+        ("R1", "R1 (Upper Divider)", "k\u03a9"),
+        ("R2", "R2 (Lower Divider)", "k\u03a9"),
+        ("RC", "RC (Collector Resistor)", "k\u03a9"),
+        ("RE", "RE (Emitter Resistor)", "k\u03a9"),
+        ("beta", "\u03b2 (Current Gain)", ""),
+        ("VBE", "VBE (Base-Emitter Voltage)", "V"),
+    ),
+    "fixed": (
+        ("VCC", "VCC (Supply Voltage)", "V"),
+        ("RB", "RB (Base Resistor)", "k\u03a9"),
+        ("RC", "RC (Collector Resistor)", "k\u03a9"),
+        ("beta", "\u03b2 (Current Gain)", ""),
+        ("VBE", "VBE (Base-Emitter Voltage)", "V"),
+    ),
+    "emitter": (
+        ("VCC", "VCC (Supply Voltage)", "V"),
+        ("RB", "RB (Base Resistor)", "k\u03a9"),
+        ("RC", "RC (Collector Resistor)", "k\u03a9"),
+        ("RE", "RE (Emitter Resistor)", "k\u03a9"),
+        ("beta", "\u03b2 (Current Gain)", ""),
+        ("VBE", "VBE (Base-Emitter Voltage)", "V"),
+    ),
+}
+
+MODE_CHOICES = tuple((key, MODE_NAMES[key]) for key in ("fixed", "emitter", "divider"))
 
 
 def to_ohms(form):
@@ -41,34 +66,60 @@ def to_ohms(form):
 def create_app() -> Flask:
     app = Flask(__name__)
 
-    app.jinja_env.filters["ma"] = lambda amps: f"{amps * 1000:.2f}"
-    app.jinja_env.filters["ma3"] = lambda amps: f"{amps * 1000:.3f}"
-    app.jinja_env.filters["ua"] = lambda amps: f"{amps * 1e6:.1f}"
+    app.jinja_env.filters["ma"] = lambda amps: f"{amps:.2f}"
+    app.jinja_env.filters["ua"] = lambda amps: f"{amps:.1f}"
     app.jinja_env.filters["volts"] = lambda v: f"{v:.2f}"
     app.jinja_env.filters["volts3"] = lambda v: f"{v:.3f}"
     app.jinja_env.filters["pct"] = (
         lambda p: "\u2014" if p is None else f"{p:.2f}")
 
+    def render(mode, fields, values, errors, result):
+        return render_template(
+            "index.html", mode=mode, mode_name=MODE_NAMES.get(mode),
+            mode_choices=MODE_CHOICES, fields=fields, values=values,
+            errors=errors, result=result, vce_sat=VCE_SAT,
+        )
+
     @app.get("/")
     def index():
-        return render_template("index.html", fields=FIELDS, values=DEFAULTS,
-                               errors=[], result=None, vce_sat=VCE_SAT)
+        raw = request.args.get("mode", "")
+        mode = "divider" if raw == "" else validate_mode(raw)
+        if mode is None:
+            return render(None, (), {}, [unknown_mode_error(raw)], None)
+        return render(mode, FIELDS[mode], MODE_DEFAULTS[mode], [], None)
 
     @app.post("/calculate")
     def calculate():
-        inputs, errors = parse_inputs(to_ohms(request.form))
-        if errors:
-            return render_template("index.html", fields=FIELDS,
-                                   values=request.form, errors=errors,
-                                   result=None, vce_sat=VCE_SAT)
+        raw = request.form.get("mode", "")
+        mode = validate_mode(raw)
+        if mode is None:
+            return render(None, (), dict(request.form),
+                          [unknown_mode_error(raw)], None)
 
-        exact = solve_exact(**vars(inputs))
-        approx = solve_approximate(**vars(inputs))
-        cmp = compare(exact, approx, inputs.beta, inputs.RE, inputs.R2)
-        return render_template("index.html", fields=FIELDS,
-                               values=request.form, errors=[],
-                               result={"exact": exact, "cmp": cmp},
-                               vce_sat=VCE_SAT)
+        inputs, errors = parse_inputs(to_ohms(request.form), mode)
+        if errors:
+            return render(mode, FIELDS[mode], dict(request.form), errors, None)
+
+        if mode == "divider":
+            point = solve_divider(inputs.VCC, inputs.R1, inputs.R2, inputs.RC,
+                                  inputs.RE, inputs.beta, inputs.VBE)
+            exact = solve_exact(inputs.VCC, inputs.R1, inputs.R2, inputs.RC,
+                                inputs.RE, inputs.beta, inputs.VBE)
+            approx = solve_approximate(inputs.VCC, inputs.R1, inputs.R2,
+                                       inputs.RC, inputs.RE, inputs.beta,
+                                       inputs.VBE)
+            cmp = compare(exact, approx, inputs.beta, inputs.RE, inputs.R2)
+        elif mode == "fixed":
+            point = solve_fixed(inputs.VCC, inputs.RB, inputs.RC,
+                                inputs.beta, inputs.VBE)
+            cmp = None
+        else:
+            point = solve_emitter(inputs.VCC, inputs.RB, inputs.RC, inputs.RE,
+                                  inputs.beta, inputs.VBE)
+            cmp = None
+
+        return render(mode, FIELDS[mode], dict(request.form), [],
+                      {"mode": mode, "point": point, "cmp": cmp})
 
     return app
 

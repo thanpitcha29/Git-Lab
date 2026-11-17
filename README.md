@@ -4,17 +4,43 @@
 
 ---
 
-# Lab 02: BJT Common-Emitter DC Bias Calculator
+# Lab 02/03: BJT Common-Emitter DC Bias Calculator
 
-A Flask web app for **ENG29 2121**: enter the seven bias values of an NPN
-common-emitter stage with voltage-divider bias and get the DC operating point
-with units, input validation, an operating-region warning, and an independent
-second calculation to compare against.
+A Flask web app for **ENG29 2121**: enter the bias values of an NPN
+common-emitter stage and get the DC operating point with units, input
+validation, an operating-region warning, and (for the divider topology) an
+independent second calculation to compare against.
+
+Three single-supply topologies share one DC model and one result shape:
+**Fixed Bias**, **Emitter Bias** and **Voltage Divider Bias**.
 
 No AC analysis, no transient, no Bode plots, no schematic editor — DC bias
 only.
 
-## Model
+## Bias modes
+
+Common inputs for all three: `VCC`, `RC`, `β`, `VBE`.
+
+| Mode | Extra inputs | Base network | Emitter network |
+|---|---|---|---|
+| Fixed | — | `RB` from VCC to base | none (emitter grounded) |
+| Emitter | `RE` | `RB` from VCC to base | `RE` from emitter to ground |
+| Divider | `R1`, `R2`, `RE` | `R1` from VCC to base, `R2` from base to ground | `RE` from emitter to ground |
+
+```
+Fixed    IB = (VCC - VBE) / RB                       VE = 0
+Emitter  IB = (VCC - VBE) / (RB + (β + 1)·RE)        VE = IE·RE
+Divider  IB = (VTH - VBE) / (RTH + (β + 1)·RE)       VE = IE·RE
+         VTH = VCC·R2/(R1+R2)   RTH = R1·R2/(R1+R2)
+then     IC = β·IB ,  IE = (β + 1)·IB ,  VB = VE + VBE
+         VC = VCC - IC·RC ,  VCE = VC - VE
+```
+
+The form takes resistors in **kOhm** and converts them to ohm once, at the
+point where the request is parsed. Every mode returns the same keys and units:
+`vb_v, ve_v, vc_v, vce_v, ic_ma, ib_ma, ib_ua, ie_ma, region, warning`.
+
+## Model (Voltage Divider)
 
 ```
 VBB = VCC · R2 / (R1 + R2)          Thévenin base voltage

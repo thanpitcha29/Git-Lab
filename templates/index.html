@@ -10,8 +10,8 @@
       </g>
     </svg>
     <div>
-      <h1>Lab 02: BJT DC Bias Web App</h1>
-      <p class="course">ENG29 2121 &ndash; Common Emitter (Voltage Divider Bias)</p>
+      <h1>Lab 03: BJT DC Bias Web App</h1>
+      <p class="course">ENG29 2121 &ndash; NPN Common Emitter (Fixed / Emitter / Voltage Divider)</p>
     </div>
   </div>
   <span class="badge">&lt;/&gt; Computer Programming for Electrical Engineers</span>
@@ -23,14 +23,25 @@
     <h2><svg viewBox="0 0 24 24" aria-hidden="true"><circle cx="12" cy="12" r="3.2"/><path d="M12 2v4M12 18v4M2 12h4M18 12h4M4.9 4.9l2.8 2.8M16.3 16.3l2.8 2.8M19.1 4.9l-2.8 2.8M7.7 16.3l-2.8 2.8"/></svg>
       Input Parameters</h2>
 
-    {% if errors %}
-    <div class="errors" role="alert">
-      <strong>Check these inputs</strong>
-      <ul>{% for error in errors %}<li>{{ error }}</li>{% endfor %}</ul>
-    </div>
-    {% endif %}
-
     <form method="post" action="{{ url_for('calculate') }}">
+      <div class="mode-bar">
+        <label for="mode">Bias mode</label>
+        <select id="mode" name="mode">
+          {% for key, label in mode_choices %}
+          <option value="{{ key }}" {% if mode == key %}selected{% endif %}>{{ label }}</option>
+          {% endfor %}
+        </select>
+        <button type="submit" class="ghost" formmethod="get"
+                formaction="{{ url_for('index') }}">Change mode</button>
+      </div>
+
+      {% if errors %}
+      <div class="errors" role="alert">
+        <strong>Mode: {{ mode_name or 'unknown' }} &mdash; check these inputs</strong>
+        <ul>{% for error in errors %}<li>{{ error }}</li>{% endfor %}</ul>
+      </div>
+      {% endif %}
+
       {% for name, label, unit in fields %}
       <div class="row">
         <label for="{{ name }}">{{ label }}</label>
@@ -50,38 +61,40 @@
 
   <section class="card circuit-card">
     <h2><svg viewBox="0 0 24 24" aria-hidden="true"><circle cx="6" cy="6" r="2"/><circle cx="18" cy="6" r="2"/><circle cx="6" cy="18" r="2"/><circle cx="18" cy="18" r="2"/><path d="M8 6h8M6 8v8M18 8v8M8 18h8"/></svg>
-      Circuit: Common-Emitter Amplifier</h2>
+      Circuit: {{ mode_name or 'select a mode' }}</h2>
 
+    {% if mode %}
     <svg class="schematic" viewBox="0 0 250 300" role="img"
-         aria-label="NPN common-emitter amplifier with voltage-divider bias">
-      <!-- rails -->
+         aria-label="NPN common-emitter bias circuit">
       <line x1="120" y1="22" x2="120" y2="40" class="wire"/>
       <line x1="55" y1="40" x2="185" y2="40" class="wire"/>
       <circle cx="120" cy="40" r="3" class="node"/>
       <text x="120" y="14" class="lbl" text-anchor="middle">V<tspan dy="3" font-size="8">CC</tspan></text>
+      <text x="150" y="34" class="val">{{ values.get('VCC', '') }} V</text>
 
-      <!-- R1 branch -->
+      <!-- base network -->
       <line x1="55" y1="40" x2="55" y2="62" class="wire"/>
       <rect x="43" y="62" width="24" height="42" class="comp"/>
-      <text x="20" y="80" class="lbl">R<tspan dy="3" font-size="8">1</tspan></text>
-      <text x="82" y="88" class="val">{{ values.get('R1', '') }} k&#8486;</text>
       <line x1="55" y1="104" x2="55" y2="150" class="wire"/>
       <circle cx="55" cy="150" r="3" class="node"/>
-
-      <!-- base -->
-      <line x1="55" y1="150" x2="96" y2="150" class="wire"/>
-
-      <!-- R2 branch -->
+      {% if mode == 'divider' %}
+      <text x="18" y="80" class="lbl">R<tspan dy="3" font-size="8">1</tspan></text>
+      <text x="82" y="88" class="val">{{ values.get('R1', '') }} k&#8486;</text>
       <rect x="43" y="166" width="24" height="42" class="comp"/>
       <line x1="55" y1="150" x2="55" y2="166" class="wire"/>
       <line x1="55" y1="208" x2="55" y2="252" class="wire"/>
-      <text x="20" y="192" class="lbl">R<tspan dy="3" font-size="8">2</tspan></text>
+      <text x="18" y="192" class="lbl">R<tspan dy="3" font-size="8">2</tspan></text>
       <text x="82" y="192" class="val">{{ values.get('R2', '') }} k&#8486;</text>
       <line x1="40" y1="252" x2="70" y2="252" class="wire"/>
       <line x1="45" y1="258" x2="65" y2="258" class="wire"/>
       <line x1="50" y1="264" x2="60" y2="264" class="wire"/>
+      {% else %}
+      <text x="18" y="80" class="lbl">R<tspan dy="3" font-size="8">B</tspan></text>
+      <text x="82" y="88" class="val">{{ values.get('RB', '') }} k&#8486;</text>
+      {% endif %}
 
       <!-- transistor -->
+      <line x1="55" y1="150" x2="96" y2="150" class="wire"/>
       <circle cx="118" cy="150" r="26" class="device"/>
       <line x1="100" y1="136" x2="100" y2="164" class="wire thick"/>
       <line x1="100" y1="142" x2="132" y2="126" class="wire"/>
@@ -91,7 +104,7 @@
       <text x="150" y="158" class="val">NPN</text>
       <text x="150" y="170" class="val">&#946; = {{ values.get('beta', '') }}</text>
 
-      <!-- collector branch -->
+      <!-- collector network -->
       <line x1="132" y1="126" x2="132" y2="118" class="wire"/>
       <line x1="132" y1="118" x2="185" y2="118" class="wire"/>
       <line x1="185" y1="40" x2="185" y2="62" class="wire"/>
@@ -101,7 +114,13 @@
       <text x="200" y="94" class="val">{{ values.get('RC', '') }} k&#8486;</text>
       <circle cx="185" cy="118" r="3" class="node"/>
 
-      <!-- emitter branch -->
+      <!-- emitter network -->
+      {% if mode == 'fixed' %}
+      <line x1="132" y1="174" x2="132" y2="196" class="wire"/>
+      <line x1="117" y1="196" x2="147" y2="196" class="wire"/>
+      <line x1="122" y1="202" x2="142" y2="202" class="wire"/>
+      <line x1="127" y1="208" x2="137" y2="208" class="wire"/>
+      {% else %}
       <line x1="132" y1="174" x2="132" y2="196" class="wire"/>
       <rect x="120" y="196" width="24" height="42" class="comp"/>
       <line x1="132" y1="238" x2="132" y2="252" class="wire"/>
@@ -110,12 +129,16 @@
       <line x1="117" y1="252" x2="147" y2="252" class="wire"/>
       <line x1="122" y1="258" x2="142" y2="258" class="wire"/>
       <line x1="127" y1="264" x2="137" y2="264" class="wire"/>
+      {% endif %}
     </svg>
 
     <p class="assumptions">
       <strong>Model assumptions:</strong> constant V<sub>BE</sub> (from the form),
       ideal constant &beta;, no Early effect, V<sub>CE,sat</sub> = {{ vce_sat }} V.
     </p>
+    {% else %}
+    <p class="placeholder">Pick a bias mode to see the circuit.</p>
+    {% endif %}
   </section>
 
   <section class="card result-card">
@@ -123,40 +146,34 @@
       DC Bias Results</h2>
 
     {% if result %}
-      {% set exact = result.exact %}
-      {% set cmp = result.cmp %}
+      {% set point = result.point %}
+      <p class="mode-line">Mode: <strong>{{ mode_name }}</strong></p>
       <table class="results">
         <tbody>
-          <tr><th>V<sub>B</sub></th><td>{{ exact.VB|volts }} V</td></tr>
-          <tr><th>V<sub>E</sub></th><td>{{ exact.VE|volts }} V</td></tr>
-          <tr><th>V<sub>C</sub></th><td>{{ exact.VC|volts }} V</td></tr>
-          <tr><th>V<sub>CE</sub></th><td>{{ exact.VCE|volts }} V</td></tr>
-          <tr><th>I<sub>B</sub></th><td>{{ exact.IB|ua }} &#181;A</td></tr>
-          <tr><th>I<sub>C</sub></th><td>{{ exact.IC|ma }} mA</td></tr>
-          <tr><th>I<sub>E</sub></th><td>{{ exact.IE|ma }} mA</td></tr>
+          <tr><th>V<sub>B</sub></th><td>{{ '%0.2f'|format(point.vb_v) }} V</td></tr>
+          <tr><th>V<sub>E</sub></th><td>{{ '%0.2f'|format(point.ve_v) }} V</td></tr>
+          <tr><th>V<sub>C</sub></th><td>{{ '%0.2f'|format(point.vc_v) }} V</td></tr>
+          <tr><th>V<sub>CE</sub></th><td>{{ '%0.2f'|format(point.vce_v) }} V</td></tr>
+          <tr><th>I<sub>B</sub></th><td>{{ '%0.1f'|format(point.ib_ua) }} &#181;A</td></tr>
+          <tr><th>I<sub>C</sub></th><td>{{ '%0.2f'|format(point.ic_ma) }} mA</td></tr>
+          <tr><th>I<sub>E</sub></th><td>{{ '%0.2f'|format(point.ie_ma) }} mA</td></tr>
         </tbody>
       </table>
 
-      {% if exact.region == "active" %}
+      {% if point.warning %}
+      <div class="status warn">
+        <strong>{{ point.region|capitalize }} &mdash; model warning</strong>
+        <span>{{ point.warning }}</span>
+      </div>
+      {% elif point.region == "active" %}
       <div class="status ok">
         <strong>Active region approximation OK</strong>
-        <span>V<sub>CE</sub> = {{ exact.VCE|volts }} V &gt; {{ vce_sat }} V (transistor in active region)</span>
-      </div>
-      {% elif exact.region == "saturation" %}
-      <div class="status warn">
-        <strong>Saturation &mdash; the model is not valid here</strong>
-        <span>V<sub>CE</sub> = {{ exact.VCE|volts }} V is below {{ vce_sat }} V. The physical ceiling is
-          I<sub>C,sat</sub> = {{ exact.IC_sat|ma }} mA.</span>
-      </div>
-      {% else %}
-      <div class="status off">
-        <strong>Cutoff &mdash; the transistor is off</strong>
-        <span>The divider sits at {{ exact.VBB|volts }} V, below V<sub>BE</sub>.
-          I<sub>C</sub> = 0 and V<sub>CE</sub> = V<sub>CC</sub>.</span>
+        <span>V<sub>CE</sub> = {{ '%0.2f'|format(point.vce_v) }} V &gt; {{ vce_sat }} V
+          (transistor in active region)</span>
       </div>
       {% endif %}
     {% else %}
-      <p class="placeholder">Enter the seven bias values and press
+      <p class="placeholder">Enter the bias values for the selected mode and press
         <strong>Calculate DC Bias</strong> to see V<sub>B</sub>, V<sub>E</sub>,
         V<sub>C</sub>, V<sub>CE</sub>, I<sub>B</sub>, I<sub>C</sub> and
         I<sub>E</sub>.</p>
@@ -164,24 +181,24 @@
   </section>
 </div>
 
-{% if result %}
-{% set exact = result.exact %}
+{% if result and result.cmp %}
+{% set point = result.point %}
 {% set cmp = result.cmp %}
 <section class="card comparison-card">
   <h2><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M4 7h7M4 12h11M4 17h7M15 7l5 5-5 5"/></svg>
-    Independent check &mdash; &beta;-free approximation</h2>
+    Independent check &mdash; &beta;-free approximation ({{ mode_name }})</h2>
   <table class="compare">
     <thead>
       <tr><th>Quantity</th><th>Exact</th><th>Approximate</th><th>&Delta;</th></tr>
     </thead>
     <tbody>
-      <tr><th>I<sub>C</sub> (mA)</th><td>{{ exact.IC|ma3 }}</td><td>{{ cmp.approx.IC|ma3 }}</td><td>{{ cmp.delta_ic_pct|pct }} %</td></tr>
-      <tr><th>V<sub>CE</sub> (V)</th><td>{{ exact.VCE|volts3 }}</td><td>{{ cmp.approx.VCE|volts3 }}</td><td>{{ cmp.delta_vce_pct|pct }} %</td></tr>
-      <tr><th>V<sub>B</sub> (V)</th><td>{{ exact.VB|volts3 }}</td><td>{{ cmp.approx.VB|volts3 }}</td><td>&mdash;</td></tr>
+      <tr><th>I<sub>C</sub> (mA)</th><td>{{ '%0.3f'|format(point.ic_ma) }}</td><td>{{ '%0.3f'|format(cmp.approx.IC * 1000) }}</td><td>{{ cmp.delta_ic_pct|pct }} %</td></tr>
+      <tr><th>V<sub>CE</sub> (V)</th><td>{{ '%0.3f'|format(point.vce_v) }}</td><td>{{ '%0.3f'|format(cmp.approx.VCE) }}</td><td>{{ cmp.delta_vce_pct|pct }} %</td></tr>
+      <tr><th>V<sub>B</sub> (V)</th><td>{{ '%0.3f'|format(point.vb_v) }}</td><td>{{ '%0.3f'|format(cmp.approx.VB) }}</td><td>&mdash;</td></tr>
     </tbody>
   </table>
   <p class="rule">
-    &beta;&middot;R<sub>E</sub> / R<sub>2</sub> = {{ "%.2f"|format(cmp.beta_re_over_r2) }}
+    &beta;&middot;R<sub>E</sub> / R<sub>2</sub> = {{ '%.2f'|format(cmp.beta_re_over_r2) }}
     (stiff-divider rule needs &ge; 10).
     {% if cmp.invalid_reason == "outside_active_region" %}
       <strong>Model not valid outside the active region</strong> &mdash; the
@@ -200,11 +217,9 @@
 {% endif %}
 
 <footer class="goal">
-  <div class="goal-tag">Week 2 Goal</div>
-  <p>Rough target for this lab: build a Flask web app that takes the circuit
-     parameters, computes the BJT DC bias (V<sub>B</sub>, V<sub>E</sub>,
-     V<sub>C</sub>, V<sub>CE</sub>, I<sub>B</sub>, I<sub>C</sub>, I<sub>E</sub>)
-     for a common-emitter amplifier with voltage-divider bias, and displays the
-     results.</p>
+  <div class="goal-tag">Lab 03</div>
+  <p>Three single-supply NPN common-emitter bias networks &mdash; Fixed, Emitter
+     and Voltage Divider &mdash; computed from one shared DC model, with the same
+     result keys and units for all three modes.</p>
 </footer>
 {% endblock %}

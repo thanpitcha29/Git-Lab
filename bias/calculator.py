@@ -1,4 +1,4 @@
-"""DC bias calculations for an NPN common-emitter stage.
+"""DC bias calculations for three NPN common-emitter topologies.
 
 Pure engineering logic: this module must never import Flask or Jinja.
 """
@@ -94,12 +94,6 @@ def solve_approximate(VCC: float, R1: float, R2: float, RC: float,
     )
 
 
-def _delta_pct(value: float, reference: float) -> Optional[float]:
-    if reference == 0:
-        return None
-    return abs(value - reference) / abs(reference) * 100.0
-
-
 def compare(exact: OperatingPoint, approx: OperatingPoint,
             beta: float, RE: float, R2: float) -> Comparison:
     ratio = beta * RE / R2
@@ -122,3 +116,95 @@ def compare(exact: OperatingPoint, approx: OperatingPoint,
         approximation_valid=reason is None,
         invalid_reason=reason,
     )
+
+
+def _delta_pct(value: float, reference: float) -> Optional[float]:
+    if reference == 0:
+        return None
+    return abs(value - reference) / abs(reference) * 100.0
+
+
+# ---------------------------------------------------------------------------
+# Lab 03: one canonical result shape for all three topologies.
+# ---------------------------------------------------------------------------
+
+CUTOFF_WARNING = (
+    "IB <= 0: the base-emitter junction is not forward biased, so the "
+    "Forward Active model does not apply here."
+)
+
+
+def _warning_for(region: str, vce: float) -> Optional[str]:
+    if region == "cutoff":
+        return CUTOFF_WARNING
+    if region == "saturation":
+        return (f"VCE = {vce:.3f} V <= {VCE_SAT} V: the transistor is in "
+                "saturation, so the Forward Active model does not apply here.")
+    return None
+
+
+def _point(mode: str, VCC: float, RC: float, RE: float, VBE: float,
+           beta: float, IB: float, ve, vth: Optional[float] = None,
+           rth: Optional[float] = None) -> dict:
+    """Shared finishing step: IB -> IC, IE, VB, VE, VC, VCE.
+
+    `ve` is None when VE must be computed as IE*RE (emitter and divider),
+    and 0.0 for fixed bias where the emitter is grounded.
+    """
+    if IB <= 0:
+        return {
+            "mode": mode, "ib_ma": 0.0, "ib_ua": 0.0, "ic_ma": 0.0,
+            "ie_ma": 0.0, "vb_v": VBE, "ve_v": 0.0, "vc_v": VCC,
+            "vce_v": VCC, "vth_v": vth, "rth_ohm": rth,
+            "region": "cutoff", "ic_sat_ma": None,
+            "warning": CUTOFF_WARNING,
+        }
+
+    IC = beta * IB
+    IE = (1 + beta) * IB
+    VE = IE * RE if ve is None else ve
+    VB = VE + VBE
+    VC = VCC - IC * RC
+    VCE = VC - VE
+    region, IC_sat = _regions(VCC, RC, RE, VCE)
+
+    return {
+        "mode": mode,
+        "ib_ma": IB * 1000.0, "ib_ua": IB * 1e6,
+        "ic_ma": IC * 1000.0, "ie_ma": IE * 1000.0,
+        "vb_v": VB, "ve_v": VE, "vc_v": VC, "vce_v": VCE,
+        "vth_v": vth, "rth_ohm": rth,
+        "region": region,
+        "ic_sat_ma": None if IC_sat is None else IC_sat * 1000.0,
+        "warning": _warning_for(region, VCE),
+    }
+
+
+def solve_fixed(VCC: float, RB: float, RC: float,
+                beta: float, VBE: float) -> dict:
+    """Fixed bias: IB = (VCC - VBE) / RB, emitter grounded (VE = 0)."""
+    IB = (VCC - VBE) / RB
+    return _point("fixed", VCC, RC, 0.0, VBE, beta, IB, 0.0)
+
+
+def solve_emitter(VCC: float, RB: float, RC: float, RE: float,
+                  beta: float, VBE: float) -> dict:
+    """Emitter bias: IB = (VCC - VBE) / (RB + (beta + 1)*RE)."""
+    IB = (VCC - VBE) / (RB + (1 + beta) * RE)
+    return _point("emitter", VCC, RC, RE, VBE, beta, IB, None)
+
+
+def solve_divider(VCC: float, R1: float, R2: float, RC: float,
+                  RE: float, beta: float, VBE: float) -> dict:
+    """Voltage divider bias, reusing the Lab 02 solver unchanged."""
+    op = solve_exact(VCC, R1, R2, RC, RE, beta, VBE)
+    return {
+        "mode": "divider",
+        "ib_ma": op.IB * 1000.0, "ib_ua": op.IB * 1e6,
+        "ic_ma": op.IC * 1000.0, "ie_ma": op.IE * 1000.0,
+        "vb_v": op.VB, "ve_v": op.VE, "vc_v": op.VC, "vce_v": op.VCE,
+        "vth_v": op.VBB, "rth_ohm": op.RB,
+        "region": op.region,
+        "ic_sat_ma": None if op.IC_sat is None else op.IC_sat * 1000.0,
+        "warning": _warning_for(op.region, op.VCE),
+    }

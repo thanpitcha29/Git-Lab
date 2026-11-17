@@ -3,7 +3,8 @@ import unittest
 from app import create_app
 
 # Resistors are entered in kOhm, matching the form labels.
-VALID = {"VCC": "12", "R1": "47", "R2": "10", "RC": "2.2",
+# Lab 03 added the mode selector, so every POST carries it.
+VALID = {"mode": "divider", "VCC": "12", "R1": "47", "R2": "10", "RC": "2.2",
          "RE": "1", "beta": "150", "VBE": "0.7"}
 
 
@@ -16,7 +17,7 @@ class RoutesTest(unittest.TestCase):
         self.assertEqual(r.status_code, 200)
         self.assertIn(b'name="VCC"', r.data)
         self.assertIn(b'name="RE"', r.data)
-        self.assertIn(b"Lab 02", r.data)
+        self.assertIn(b"Lab 03", r.data)
 
     def test_post_computes_and_renders(self):
         r = self.client.post("/calculate", data=VALID)
@@ -42,6 +43,11 @@ class RoutesTest(unittest.TestCase):
         r = self.client.post("/calculate", data={**VALID, "RC": "7.5"})
         self.assertEqual(r.status_code, 200)
         self.assertIn(b"in saturation by itself", r.data)
+
+    def test_unknown_mode_is_rejected(self):
+        r = self.client.post("/calculate", data={**VALID, "mode": "bogus"})
+        self.assertEqual(r.status_code, 200)
+        self.assertIn(b"Unknown bias mode", r.data)
 
 
 if __name__ == "__main__":
