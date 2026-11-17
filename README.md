@@ -23,6 +23,7 @@ only.
 |---|---|
 | Repository | <https://github.com/thanpitcha29/Git-Lab> |
 | Branch | `main` |
+| Commit | `90274dc` |
 | A1–A5 acceptance table, evidence, independent reference, AI/student split | [`docs/validation.md`](docs/validation.md) |
 | Screenshot evidence (case A2) | [`docs/evidence-a2-fixed-bias.jpg`](docs/evidence-a2-fixed-bias.jpg) |
 
