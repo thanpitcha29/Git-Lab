@@ -146,3 +146,104 @@ lose it:
 The rule of thumb: verify the payload first, then the converted value, then the
 argument the function actually received — never only the final number on screen.
 
+---
+
+# Lab 04 — BJT CE Amplifier Simulator (B1–B8)
+
+Date: 2026-11-24 · Repository: <https://github.com/thanpitcha29/Git-Lab> ·
+Branch: `main` · Implementation commit SHA: see the Lab 04 submission table in
+[`README.md`](../README.md).
+
+App: `http://127.0.0.1:5000/` (Flask 3, `python -m flask --app app run --port
+5000 --no-debugger --no-reload`). Python 3.12.7. Engine: **ngspice-47**,
+portable console binary at `.tools/ngspice/Spice64/bin/ngspice_con.exe`
+(gitignored). Browser driver: Chrome + `playwright-core` 1.65.1.
+
+## Method and tool status
+
+| Item | Value |
+|---|---|
+| Playwright MCP | **NOT RUN** — the MCP server was configured with bare `npx`, which was not on PATH at session start; it cannot be restarted mid-session. Portable Node 22.23.5 was installed later in gitignored `.tools/node`, but the MCP route stayed unavailable. |
+| Actual method (substitute) | Direct Playwright script (`.tools/browser/acceptance.js`, local/gitignored): real page load, real field fill, real radio selection, real **Run Simulation** click, real HTTP POST; values read back from the rendered page. |
+| Manual fallback | Not needed; every B-case was driven through the UI. |
+| Raw evidence | [`before-results.txt`](captures/before-results.txt) (11/11) and [`after-results.txt`](captures/after-results.txt) (12/12). |
+| Screenshots | Before polish: [`before-b8-desktop.png`](captures/before-b8-desktop.png), [`before-b8-mobile.png`](captures/before-b8-mobile.png). After polish: [`after-b1-regression.png`](captures/after-b1-regression.png) … [`after-b8-mobile.png`](captures/after-b8-mobile.png). |
+| Unit/regression suite | 38 tests, all OK (`python -m unittest discover -s tests -v`). |
+| Impeccable | Critique → polish → audit on the running UI; final `impeccable detect --json --changed`: 0 warnings, 1 advisory (faint measurement-grid background, retained deliberately). |
+
+No plotted value is hard-coded. Each request writes a fresh netlist and takes
+the data from ngspice's `wrdata` ASCII files in its own `runs/<timestamp>-...`
+directory; the netlist, command, run directory and log tail are visible under
+**Provenance**. Engine state, per-analysis metrics, units and error text are
+rendered from that run's result object.
+
+## Reference circuit and engine facts
+
+- `VCC = 12 V`, `R1 = 100 kΩ`, `R2 = 22 kΩ`, `RC = 2.2 kΩ`, `RE = 1 kΩ`,
+  `RL = 10 kΩ`, `Cin = Cout = 10 µF`, source `10 mV peak / 1 kHz`, unbypassed
+  emitter resistor. `Vin` is measured at the source before `Cin`; `Vout` at the
+  collector after `Cout`.
+- No starter kit was supplied, so `spice_engine.py` embeds a documented
+  **2N3904** card (BF = 416.4) as a stand-in. The Lab 03 analytical column uses
+  β = 100 and constant VBE = 0.70 V, so the two columns are expected to differ;
+  they are labelled separately and neither is copied from the other.
+- AC: `.ac dec 20 1 100e6` (161 points). Gain = `vdb(out) − vdb(src)`; phase =
+  `vp(out) − vp(src)`, converted from radians to degrees and unwrapped for a
+  continuous Bode curve. The upper −3 dB corner lies above the 100 MHz sweep,
+  so the UI says **above sweep (> 100 MHz)** rather than inventing a value.
+- Transient: `.tran` to 0.2 s, 601 points; only the last periods are plotted.
+
+## Results (B1–B8)
+
+| ID | Check | Expected / independent reference | Observed | Status |
+|---|---|---|---|---|
+| B1a | Lab 03 Divider unchanged | IC 1.23 mA · VCE 8.05 V (`docs/validation.md` A1) | IC 1.23 mA · VCE 8.05 V | **PASS** |
+| B1b | Lab 03 Fixed unchanged | IC 1.13 mA · VCE 9.51 V (A2) | IC 1.13 mA · VCE 9.51 V | **PASS** |
+| B1c | Lab 03 Emitter unchanged | IC 1.03 mA · VCE 8.71 V (A3) | IC 1.03 mA · VCE 8.71 V | **PASS** |
+| B2 | DC `.op` is a real ngspice run | Success pill + ngspice version + operating point from the emitted netlist; analytical Lab 03 values shown only as a labelled comparison | VB 2.004 V, VE 1.333 V, VC 9.087 V, VCE 7.754 V, IC 1.324 mA, IB 8.89 µA, IE 1.333 mA, `active`; netlist/log in provenance | **PASS** |
+| B3 | Change `RE` 1 kΩ → 2 kΩ | IC must decrease, VCE must change | IC 1.324 → 0.705 mA; VCE 7.754 → 9.032 V; new `Success` run | **PASS** |
+| B4 | AC sweep | Gain and phase vs frequency with Hz/dB/degree axes, referenced to Vin | Gain @1 kHz 4.89 dB (×1.76), fL 1.78 Hz, phase ≈ −83° → −180° → −300°, 161 points, 2 SVG Bode charts | **PASS** |
+| B5 | Transient | Vin/Vout vs time, inverted CE output | Vin peak 10.00 mV, Vout peak 17.56 mV, gain ×1.76, `inverted (180°)`, 601 points, 1 SVG chart | **PASS** |
+| B6 | Change source 20 mV / 2 kHz | Vin peak must follow the new amplitude | Vin peak 20.00 mV in the new run | **PASS** |
+| B7 | Invalid input and engine failure | Input errors and SPICE failures must fail loudly, with no success bar or fake trace | `RE = 0` → `Simulation stopped — no result shown`, `RE must be greater than 0 Ω`, 0 success bars. Forced bad engine (`NGSPICE_BIN=requirements.txt`) → HTTP 200, no success bar, `Could not start ngspice.` plus `[WinError 193] …` detail | **PASS** |
+| B8a | Desktop 1280 px | No horizontal page overflow | `document.documentElement.scrollWidth <= innerWidth` | **PASS** |
+| B8b | Phone 390 px | No horizontal page overflow | `document.documentElement.scrollWidth <= innerWidth` at 390 × 844, DPR 2 | **PASS** |
+| B8c | Phone chart legibility | Wide charts readable without breaking the page | `.chart-scroll` 640 px chart inside 308 px viewport, scrollable; x-title/ticks/legend on separate rows | **PASS** |
+
+### DC cross-check — SPICE vs analytical (B2)
+
+| Quantity | SPICE 2N3904 | Analytical β = 100 | Difference |
+|---|---|---|---|
+| VB | 2.004 V | 1.942 V | 3.2 % |
+| VCE | 7.754 V | 8.052 V | 3.7 % |
+| IC | 1.324 mA | 1.230 mA | 7.7 % |
+
+With `RE = 2 kΩ`: SPICE IC 0.705 mA / VCE 9.032 V vs analytical 0.665 mA /
+9.192 V (6.0 % / 1.7 %). The difference comes from the device card (BF = 416),
+not from a copied or substituted result.
+
+### UI polish and audit
+
+Before polish, the Bode x-axis title collided with its tick labels, the ten
+simulation fields were one undifferentiated grid, and the −3 dB fallback text
+was vague. After polish: chart tick / axis-title / legend rows are separated,
+fields are grouped into **Circuit** and **Source**, the sweep limit is named in
+the fallback text, SPICE result rows are right-aligned, mobile charts scroll
+inside their card, focus rings and `role`/live-status markup were added, and
+the gradient heading and strong grid overlay were toned down. Detector output:
+1 advisory (`codex-grid-background`, the deliberately faint measurement grid);
+the detector also warns that it cannot resolve the Jinja `url_for()` stylesheet
+link, so its colour-rule coverage is incomplete — that is a tool limitation,
+not a page error. Impeccable's technical audit checklist was applied manually:
+keyboard focus indicators, labelled radio groups/status, escaped SVG labels,
+contrast, responsive overflow and no motion that blocks reading.
+
+## Who did what (Lab 04)
+
+| Part | Done by |
+|---|---|
+| `spice_engine.py`, `charts.py`, simulation routes, template/CSS and 20 new tests | AI |
+| Impeccable critique → polish → audit and B1–B8 browser runs | AI |
+| Hand-check of the Lab 03 equations/reference values, at least one DC case by hand, and a repeat of at least one B-case in the browser | **Student — still to do** |
+| Answers in `REFLECTION.md` | **Student — still to do** |
+

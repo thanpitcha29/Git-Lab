@@ -1,11 +1,14 @@
-"""Flask entry point: routes only, engineering lives in bias/."""
+"""Flask entry point: routes only, engineering lives in bias/ and spice_engine."""
 
+import charts
 from flask import Flask, render_template, request
 
 from bias.calculator import (VCE_SAT, compare, solve_approximate, solve_divider,
                              solve_emitter, solve_exact, solve_fixed)
 from bias.validation import (MODE_NAMES, parse_inputs, unknown_mode_error,
                              validate_mode)
+from spice_engine import (ANALYSES, ANALYSIS_NAMES, SIM_DEFAULTS, SIM_FIELDS,
+                          SpiceError, engine_info, parse_params, run_analysis)
 
 # The form takes resistors in kOhm; the engineering layer works in Ohm.
 KOHM_FIELDS = ("R1", "R2", "RC", "RE", "RB")
@@ -48,6 +51,8 @@ FIELDS = {
 
 MODE_CHOICES = tuple((key, MODE_NAMES[key]) for key in ("fixed", "emitter", "divider"))
 
+SIM_CHOICES = tuple((key, ANALYSIS_NAMES[key]) for key in ANALYSES)
+
 # Display-only reminder of which base-loop equation the mode uses. The
 # numbers are still computed only in bias/calculator.py; this dict keeps the
 # equations out of the template.
@@ -83,12 +88,26 @@ def create_app() -> Flask:
     app.jinja_env.filters["pct"] = (
         lambda p: "\u2014" if p is None else f"{p:.2f}")
 
-    def render(mode, fields, values, errors, result):
+    def sim_context(**overrides):
+        context = {
+            "sim_fields": SIM_FIELDS,
+            "sim_values": SIM_DEFAULTS,
+            "engine": engine_info(),
+            "analysis_choices": SIM_CHOICES,
+            "sim_analysis": "dc",
+            "sim_result": None,
+            "sim_errors": [],
+            "sim_detail": "",
+        }
+        context.update(overrides)
+        return context
+
+    def render(mode, fields, values, errors, result, **sim):
         return render_template(
             "index.html", mode=mode, mode_name=MODE_NAMES.get(mode),
             mode_choices=MODE_CHOICES, fields=fields, values=values,
             errors=errors, result=result, vce_sat=VCE_SAT,
-            formula=MODE_FORMULAS.get(mode),
+            formula=MODE_FORMULAS.get(mode), **sim_context(**sim),
         )
 
     @app.get("/")
@@ -131,6 +150,51 @@ def create_app() -> Flask:
 
         return render(mode, FIELDS[mode], dict(request.form), [],
                       {"mode": mode, "point": point, "cmp": cmp})
+
+    @app.post("/simulate")
+    def simulate():
+        analysis = request.form.get("analysis", "dc")
+        mode = validate_mode(request.form.get("mode", "divider")) or "divider"
+        submitted = dict(request.form)
+
+        if analysis not in ANALYSES:
+            return render(mode, FIELDS[mode], MODE_DEFAULTS[mode], [], None,
+                          sim_analysis=analysis, sim_values=submitted,
+                          sim_errors=[f"Unknown analysis '{analysis}'."])
+
+        params, errors = parse_params(request.form)
+        if errors:
+            return render(mode, FIELDS[mode], MODE_DEFAULTS[mode], [], None,
+                          sim_analysis=analysis, sim_values=submitted,
+                          sim_errors=errors)
+
+        try:
+            result = run_analysis(analysis, params)
+        except SpiceError as exc:
+            return render(mode, FIELDS[mode], MODE_DEFAULTS[mode], [], None,
+                          sim_analysis=analysis, sim_values=submitted,
+                          sim_errors=[exc.message], sim_detail=exc.detail)
+
+        result["charts"] = {}
+        if analysis == "ac":
+            result["charts"]["gain"] = charts.bode_gain_chart(result["ac"])
+            result["charts"]["phase"] = charts.bode_phase_chart(result["ac"])
+        elif analysis == "tran":
+            result["charts"]["tran"] = charts.transient_chart(result["tran"])
+        else:
+            # Same circuit, Lab 3 equations, for a labelled cross-check.
+            result["analytical"] = solve_divider(
+                params["VCC"], params["R1"], params["R2"], params["RC"],
+                params["RE"], 100.0, 0.70)
+            result["analytical_note"] = (
+                "Analytical column: Lab 3 model, \u03b2 = 100 and VBE = 0.70 V "
+                "constant. The SPICE run uses the 2N3904 card (BF = 416), so "
+                "the two sets are expected to differ; neither is a copy of "
+                "the other.")
+
+        return render(mode, FIELDS[mode], MODE_DEFAULTS[mode], [], None,
+                      sim_analysis=analysis, sim_values=submitted,
+                      sim_result=result)
 
     return app
 

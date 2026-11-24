@@ -1,0 +1,11 @@
+PASS | B1a divider regression | IC ~1.23 mA, VCE ~8.05 V
+PASS | B1b fixed regression | IC ~1.13 mA, VCE ~9.51 V
+PASS | B1c emitter regression | IC ~1.03 mA, VCE ~8.71 V
+PASS | B2 DC SPICE | real .op: VCE ~7.75 V, IC ~1.32 mA
+PASS | B3 change RE | RE 2k changed .op (IC dropped, VCE changed)
+PASS | B4 AC sweep | gain + phase Bode, 2 SVG charts
+PASS | B5 transient | Vin/Vout waveform, inverted (180 deg)
+PASS | B6 change source | 20 mV / 2 kHz run reflected in Vin peak
+PASS | B7 invalid / fail | RE=0 blocked with alert, no success bar
+PASS | B8a desktop 1280 | no horizontal overflow at 1280px
+PASS | B8b mobile 390 | no horizontal overflow at 390px
