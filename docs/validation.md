@@ -151,8 +151,9 @@ argument the function actually received — never only the final number on scree
 # Lab 04 — BJT CE Amplifier Simulator (B1–B8)
 
 Date: 2026-11-24 · Repository: <https://github.com/thanpitcha29/Git-Lab> ·
-Branch: `main` · Implementation commit SHA: see the Lab 04 submission table in
-[`README.md`](../README.md).
+Branch: `main` · Implementation commit:
+`660d7d3a369a16c2d9056a44829b2f86ca7f12c5` (also recorded in
+[`README.md`](../README.md)).
 
 App: `http://127.0.0.1:5000/` (Flask 3, `python -m flask --app app run --port
 5000 --no-debugger --no-reload`). Python 3.12.7. Engine: **ngspice-47**,

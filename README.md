@@ -28,7 +28,7 @@ visible on the page.
 |---|---|
 | Repository | <https://github.com/thanpitcha29/Git-Lab> |
 | Branch | `main` |
-| Lab 04 implementation commit | `PENDING_SHA` |
+| Lab 04 implementation commit | `660d7d3a369a16c2d9056a44829b2f86ca7f12c5` |
 | Lab 03 commit (previous submission) | `3b978ff` |
 | Lab 04 B1–B8 acceptance, evidence, before/after screenshots, AI/student split | [`docs/validation.md`](docs/validation.md) |
 | Before / after UI screenshots | [`docs/captures/before-b8-desktop.png`](docs/captures/before-b8-desktop.png), [`docs/captures/after-b8-desktop.png`](docs/captures/after-b8-desktop.png), mobile counterparts in the same folder |
