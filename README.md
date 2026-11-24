@@ -31,7 +31,7 @@ visible on the page.
 | Lab 04 implementation commit | `660d7d3a369a16c2d9056a44829b2f86ca7f12c5` |
 | Lab 03 commit (previous submission) | `3b978ff` |
 | Lab 04 B1–B8 acceptance, evidence, before/after screenshots, AI/student split | [`docs/validation.md`](docs/validation.md) |
-| Before / after UI screenshots | [`docs/captures/before-b8-desktop.png`](docs/captures/before-b8-desktop.png), [`docs/captures/after-b8-desktop.png`](docs/captures/after-b8-desktop.png), mobile counterparts in the same folder |
+| Before / after UI screenshots | **All-in-one:** [`docs/captures/lab04-all-in-one.png`](docs/captures/lab04-all-in-one.png) · [`before-b8-desktop.png`](docs/captures/before-b8-desktop.png) / [`after-b8-desktop.png`](docs/captures/after-b8-desktop.png), mobile counterparts in the same folder |
 | Student reflection | [`REFLECTION.md`](REFLECTION.md) |
 
 AI built the ngspice adapter, SVG charts, simulation route/UI, the 20 new tests

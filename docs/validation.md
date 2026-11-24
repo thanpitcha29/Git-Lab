@@ -168,7 +168,7 @@ portable console binary at `.tools/ngspice/Spice64/bin/ngspice_con.exe`
 | Actual method (substitute) | Direct Playwright script (`.tools/browser/acceptance.js`, local/gitignored): real page load, real field fill, real radio selection, real **Run Simulation** click, real HTTP POST; values read back from the rendered page. |
 | Manual fallback | Not needed; every B-case was driven through the UI. |
 | Raw evidence | [`before-results.txt`](captures/before-results.txt) (11/11) and [`after-results.txt`](captures/after-results.txt) (12/12). |
-| Screenshots | Before polish: [`before-b8-desktop.png`](captures/before-b8-desktop.png), [`before-b8-mobile.png`](captures/before-b8-mobile.png). After polish: [`after-b1-regression.png`](captures/after-b1-regression.png) … [`after-b8-mobile.png`](captures/after-b8-mobile.png). |
+| Screenshots | **All-in-one overview:** [`lab04-all-in-one.png`](captures/lab04-all-in-one.png) (single long image, labelled, includes the B4/B5 charts). Before polish: [`before-b8-desktop.png`](captures/before-b8-desktop.png), [`before-b8-mobile.png`](captures/before-b8-mobile.png). After polish: [`after-b1-regression.png`](captures/after-b1-regression.png) … [`after-b8-mobile.png`](captures/after-b8-mobile.png). |
 | Unit/regression suite | 38 tests, all OK (`python -m unittest discover -s tests -v`). |
 | Impeccable | Critique → polish → audit on the running UI; final `impeccable detect --json --changed`: 0 warnings, 1 advisory (faint measurement-grid background, retained deliberately). |
 
